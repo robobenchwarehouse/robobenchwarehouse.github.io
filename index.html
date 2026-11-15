@@ -190,7 +190,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
   <div class="btns">
     <a class="btn primary" href="#start">Quick start</a>
     <a class="btn" href="#models">Bring your model</a>
-    <a class="btn" href="https://github.com/REIVeela/warehouse-logistics-benchmark">Code</a>
+    <a class="btn" href="#pipeline">Evaluation protocol</a>
   </div>
   <div class="teaser">
     <figure class="clip" style="margin:0">
@@ -419,7 +419,7 @@ python -m pipeline.cli evaluate --suite warehouse-prototype-v1 \
 <section id="outcomes"><div class="wrap">
   <p class="eyebrow">Reading the results</p>
   <h2>Every episode says what happened</h2>
-  <p class="sub">Beyond success, each episode gets a progress funnel (reached → grasped → lifted → in target → released → settled), a failure label and one sentence derived from the recorded trajectory, with the step and distance that show it. The same text is in each run's <code>report.html</code> and <code>summary.csv</code>, with a <code>review.csv</code> for adding your own label. Click a clip to enlarge it.</p>
+  <p class="sub">Beyond success, each episode gets a progress funnel (reached → grasped → lifted → in target → released → settled), a failure label and one sentence derived from the recorded trajectory, with the step and distance that show it. When the environment names its own failure reason, it is added word for word. The same text is in each run's <code>report.html</code> and <code>summary.csv</code>, with a <code>review.csv</code> for adding your own label. Click a clip to enlarge it.</p>
   <div class="filters" role="group" aria-label="Filter episodes" id="ep-filters"></div>
   <div class="grid2" id="ep-grid"></div>
   <h3 style="margin-top:32px">One set of rules, adapted to each task and each robot</h3>
@@ -534,7 +534,7 @@ const EPISODES = [
   {v:"varied-clutter",ok:true,label:"success",t:"Oracle · SKU clutter · seed 0",why:"“Move the blue package …” among four distractors. Succeeded: grasped at step 51, settled by step 134."},
   {v:"varied-lighting",ok:true,label:"success",t:"Oracle · lighting variation · seed 1",why:"Succeeded: grasped at step 52, placed and settled by step 135."},
   {v:"industrial-expert-demo",ok:true,label:"success",t:"Scripted oracle · IndustrialShelfRetrieval-v0 · train seed 501 (2× speed)",why:"A fine-tuning demonstration, replayed exactly before export. Grasped at step 159, placed in the order tote and settled by step 1,128. Head cameras and wrist camera."},
-  {v:"industrial-ft-s2000-knocked",ok:false,label:"never_grasped",t:"π0.5 + LoRA, step 2000 · IndustrialShelfRetrieval-v0 · dev seed 302",why:"Closed in to 0.12 m of the item, then nudged it off the shelf without holding it. The episode ended at step 150."},
+  {v:"industrial-ft-s2000-knocked",ok:false,label:"knocked_off_shelf",t:"π0.5 + LoRA, step 2000 · IndustrialShelfRetrieval-v0 · dev seed 302",why:"Closed in to 0.12 m of the item, then nudged it off the shelf without holding it. The episode ended at step 150. The env reports: target_drop at step 150."},
 ];
 const filters = [["all","All"],["success","Successes"],["failure","Failures"],["never_grasped","never_grasped"],["timeout","timeout"]];
 const fEl = document.getElementById("ep-filters"), gEl = document.getElementById("ep-grid");
@@ -570,7 +570,7 @@ document.getElementById("suite-list").innerHTML = SUITES.map(su=>`<article class
 
 const REPORT = {model:"π0.5 + LoRA (standard-ft-v1)", mode:"fine-tuned", suite:"warehouse-prototype-v1", task:"BinTransfer-v0", robot:"fetch_rbm-pd_joint_pos-v1", split:"test (frozen seeds 10000–10019, run once)", data:"300 scripted demonstrations, train seeds; checked disjoint from every evaluated seed",
   conds:[{c:"D0",k:19,n:20,len:136.1,fail:[["never_grasped",1]],funnel:[.95,.95,.95,.95,.95,.95]},
-         {c:"D1",k:13,n:20,len:135.7,fail:[["never_grasped",5],["timeout",2]],funnel:[.75,.75,.65,.65,.75,.65]},
+         {c:"D1",k:13,n:20,len:135.7,fail:[["never_grasped",5],["timeout",2]],funnel:[.75,.75,.65,.65,.65,.65]},
          {c:"D2",k:14,n:20,len:136.6,fail:[["never_grasped",6]],funnel:[.70,.70,.70,.70,.70,.70]}],
   stages:["reached","grasped","lifted","in target","released","settled"], infer:"414 ms per chunk (median)"};
 (function(){const R=REPORT,K=R.conds.reduce((a,c)=>a+c.k,0),N=R.conds.reduce((a,c)=>a+c.n,0),[lo,hi]=wilson(K,N);
@@ -579,7 +579,7 @@ const REPORT = {model:"π0.5 + LoRA (standard-ft-v1)", mode:"fine-tuned", suite:
  const rowsS=R.conds.map(c=>`<tr><td><b>${c.c}</b></td><td class="num">${rateCell(c.k,c.n,true)}</td><td class="num">${c.len}</td><td>${c.fail.map(([l,v])=>`<span class="chip bad">${l} ${v}</span>`).join(" ")}</td></tr>`).join("");
  const succ=`<table class="tbl"><thead><tr><th>Condition</th><th>Success</th><th>Steps (successes, mean)</th><th>Failure labels</th></tr></thead><tbody>${rowsS}</tbody></table>`;
  const fun=`<table class="tbl funnel"><thead><tr><th>Condition</th>${R.stages.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>${R.conds.map(c=>`<tr><td><b>${c.c}</b></td>${c.funnel.map(v=>`<td><div class="fbar"><span style="width:${v*100}%"></span></div><span class="v">${Math.round(v*100)}%</span></td>`).join("")}</tr>`).join("")}</tbody></table>`;
- document.getElementById("report-card").innerHTML=`<div class="rtop">${head}${big}</div><h3 class="rh">Success by condition</h3>${succ}<h3 class="rh">Progress funnel</h3><p class="note" style="margin-top:0">Share of episodes that reached each stage. A task can add its own stages, such as lifted off the shelf or cleared the rack.</p><div style="overflow-x:auto">${fun}</div><p class="note">Inference ${R.infer}. Every run also writes <code>report.html</code> with a video, a failure label and a one-sentence reason for each episode, as in the examples below.</p>`;})();
+ document.getElementById("report-card").innerHTML=`<div class="rtop">${head}${big}</div><h3 class="rh">Success by condition</h3>${succ}<h3 class="rh">Progress funnel</h3><p class="note" style="margin-top:0">Share of episodes that reached each stage. A stage counts only after the one before it, so the funnel can only narrow; released means let go inside the target bin. A task can add its own stages, such as lifted off the shelf or cleared the rack.</p><div style="overflow-x:auto">${fun}</div><p class="note">Inference ${R.infer}. Every run also writes <code>report.html</code> with a video, a failure label and a one-sentence reason for each episode, as in the examples below.</p>`;})();
 
 const STILLS = [["var-nominal","Nominal","D0 scene, default item"],["var-sku-mix","SKU mix","class, mass, friction per seed"],["var-sku-clutter","Clutter","2–4 distractors of other classes"],["var-lighting","Lighting","dim/bright, warm/cool"],
 ];
