@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RobobenchWarehouse</title>
-<meta name="description" content="A simulation benchmark for vision-language-action and world action models on warehouse picking: one interface for any model, fixed tasks and seeds, randomised SKUs and scenes, two robot tracks, a zero-shot → fine-tune → evaluate protocol, and a plain-English reason for every failure.">
+<meta name="description" content="A simulation benchmark for vision-language-action and world action models on warehouse picking: one interface for any model, fixed tasks and seeds, randomised SKUs and scenes, three robot tracks, a zero-shot → fine-tune → evaluate protocol, and a plain-English reason for every failure.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
@@ -135,6 +135,10 @@ pre .k{color:#f0a36e}
 .robot dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:8px 0 0;font-size:14px}
 .robot dt{color:var(--muted)}
 .robot dd{margin:0}
+.robot-wide{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}
+.robot-wide img{width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:4/3}
+@media (max-width:860px){.robot-wide{grid-template-columns:1fr}}
+.suite-v1 video{width:100%;display:block;background:#000;aspect-ratio:4/3;object-fit:contain;border-radius:12px 12px 0 0}
 .callout{background:var(--accent-soft);border-radius:12px;padding:16px 18px;color:var(--ink)}
 .callout b{color:var(--ink)}
 .suites{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
@@ -206,7 +210,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
   </div>
   <div class="stats" style="margin-top:28px">
     <div class="stat"><div class="n">1</div><div class="l">interface for every model: a websocket server and a model card, VLA or world action model</div></div>
-    <div class="stat"><div class="n">2</div><div class="l">robot tracks: Fetch mobile manipulator (joint actions) and Panda (standard end-effector actions)</div></div>
+    <div class="stat"><div class="n">3</div><div class="l">robot tracks: Fetch mobile manipulator, a Panda with end-effector actions, and a two-Panda hook-and-suction workcell</div></div>
     <div class="stat"><div class="n">60</div><div class="l">frozen test episodes per task: 3 difficulty levels × 20 fixed seeds, run once per model</div></div>
     <div class="stat"><div class="n">6</div><div class="l">variation axes drawn from the seed: SKU class, mass, friction, distractors, lighting, shelf</div></div>
   </div>
@@ -239,6 +243,31 @@ open &lt;run dir&gt;/report.html</pre>
   <h2>Two suites, each a theme of tasks</h2>
   <p class="sub">A suite is a themed set of tasks, as in LIBERO and RoboCasa. It names no robot: each task lists one protocol per robot it supports, and the robot comes from your model card. Tasks your robot cannot run are skipped and listed in the report, and results for different robots are never pooled. <code>evaluate</code> runs every benchmark task unless you pass <code>--tasks</code>; draft tasks run with <code>--include-drafts</code>.</p>
   <div class="suites" id="suite-list"></div>
+  <div id="task-suite-v1" style="margin-top:36px">
+    <h3 style="margin-bottom:6px">The shared industrial task suite (T1–T4)</h3>
+    <p class="sub" style="margin-bottom:18px">Four tasks in one two-Panda workcell, built by REIVeela: piece picking (T1), whole-case picking (T2), case putaway (T3) and order fulfilment over T1 and T2 (T4). Shelf levels 3 and 4 are its two conditions. T1 runs through the pipeline today, and its result matches the task's own runner exactly.</p>
+    <div class="grid2">
+      <figure class="clip suite-v1" style="margin:0">
+        <video src="media/suite-t1-pipeline-l3.mp4" muted loop playsinline controls preload="metadata"></video>
+        <figcaption class="cap"><b><span class="chip ok">success</span>T1 through the pipeline · scripted expert · level 3 · real time</b>
+        <span class="why">The hook arm pulls the bin out, the suction arm carries one item to the order container, and the bin goes back. Recorded by the pipeline with the workcell camera.</span></figcaption>
+      </figure>
+      <figure class="clip suite-v1" style="margin:0">
+        <video src="media/suite-t2-l3.mp4" muted loop playsinline controls preload="metadata"></video>
+        <figcaption class="cap"><b><span class="chip mode">task's own runner</span>T2 whole-case picking · scripted expert · level 3</b>
+        <span class="why">Not in the pipeline yet: T2 and T3 join once they have a task session like T1's.</span></figcaption>
+      </figure>
+    </div>
+    <table class="tbl" style="margin-top:18px">
+      <thead><tr><th>Task</th><th>Scripted expert, task's own runner</th><th>In the pipeline</th></tr></thead>
+      <tbody>
+        <tr><td><b>T1</b> piece picking</td><td><span class="st built">L3 ✓ L4 ✓</span></td><td><span class="st built">draft</span> Same actions bit for bit; joint positions match the task's runner to 0.0 at both levels. With or without the camera.</td></tr>
+        <tr><td><b>T2</b> whole-case picking</td><td><span class="st built">L3 ✓ L4 ✓</span></td><td><span class="st notyet">planned</span> needs a public task session</td></tr>
+        <tr><td><b>T3</b> case putaway</td><td><span class="st built">L3 ✓ L4 ✓</span></td><td><span class="st notyet">planned</span> as T2</td></tr>
+        <tr><td><b>T4</b> order fulfilment</td><td><span class="st built">supported order ✓</span></td><td><span class="st notyet">planned</span> scored line by line as T1/T2 episodes</td></tr>
+      </tbody>
+    </table>
+  </div>
   <div class="panel" style="margin-top:28px">
     <div>
       <h3 style="margin-bottom:10px">BinTransfer-v0 difficulty levels</h3>
@@ -295,6 +324,16 @@ open &lt;run dir&gt;/report.html</pre>
         <dt>Suites</dt><dd>prototype (BinTransfer)</dd>
         <dt>For</dt><dd>end-effector VLAs and world action models trained on LIBERO, DROID or Open X-Embodiment-style data</dd></dl></div>
     </div>
+  </div>
+  <div class="robot robot-wide">
+    <img src="media/robot-two-panda.jpg" alt="Two Panda arms at a storage rack: one with a hook, one with a suction cup">
+    <div class="body"><h3>Two Pandas · <code>two_panda_cam-native_joint_substeps-v1</code></h3>
+      <dl><dt>Robot</dt><dd>Two fixed Franka Pandas: a hook arm pulls the storage bin out, a suction arm picks the item</dd>
+      <dt>Cameras</dt><dd>one fixed workcell camera, 640×480 (a physics-only profile runs without it)</dd>
+      <dt>Actions</dt><dd>78 numbers at 60 Hz: 18 joint targets for each of four 240 Hz substeps, plus six command codes (mode, speed, engage hook or suction, rebase, release)</dd>
+      <dt>End effector</dt><dd>hook and suction cup</dd>
+      <dt>Suites</dt><dd>industrial (the shared T1–T4 task suite)</dd>
+      <dt>For</dt><dd>models trained on this workcell's native action format; not a general-purpose action space</dd></dl></div>
   </div>
   <p class="note"><b>Adding a robot</b> takes seven checked steps: the simulator builds the task with it, a profile, a contract test against the live simulator, a binding in each task card, one protocol per task with its own seeds, a scripted oracle that solves the task on it, and an entry in the suite. A frozen result never transfers to a new robot.</p>
   <p class="note">The profile's end effector also sets how outcomes are worded (a gripper "grasps", a suction cup "attaches"). <code>evaluate --dry-run</code> warns before running when an item is wider than the gripper opens.</p>
@@ -544,7 +583,7 @@ fEl.addEventListener("click", ev=>{const b=ev.target.closest("button");if(!b)ret
   fEl.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed", x===b));
   const f=b.dataset.f;gEl.querySelectorAll(".clip").forEach(c=>{const show=f==="all"||(f==="success"&&c.dataset.ok==="true")||(f==="failure"&&c.dataset.ok==="false")||c.dataset.label===f;c.style.display=show?"":"none";});});
 
-const FETCH = "Fetch", PANDA = "Panda";
+const FETCH = "Fetch", PANDA = "Panda", TWO = "Two Pandas";
 const SUITES = [
   {id:"warehouse-prototype-v1", name:"Prototype suite", video:"oracle-d0", robots:[FETCH, PANDA],
    about:"Workstation tasks used to build and test the pipeline, the baselines and the fine-tuning loop.",
@@ -554,9 +593,12 @@ const SUITES = [
           ["OrderPicking-v0",[[FETCH,"draft"]],"Pick the target item from storage into the order tote, from basic to cluttered."],
           ["PickSKU-v0",[[FETCH,"draft"]],"Pick a named SKU among distractors; defines the SKU task interface."]],
    cmd:"python -m pipeline.cli evaluate --suite warehouse-prototype-v1 \\\n  --model rbm_pi05 --include-drafts"},
-  {id:"warehouse-industrial-v1", name:"Industrial suite", video:"industrial-expert-demo", robots:[FETCH],
+  {id:"warehouse-industrial-v1", name:"Industrial suite", video:"industrial-expert-demo", robots:[FETCH, TWO],
    about:"The warehouse tasks from the industrial scenario: narrow aisles, real rack layout, strict success.",
-   tasks:[["IndustrialShelfRetrieval-v0",[[FETCH,"draft"]],"Retrieve a family-B carton from the middle shelf of a narrow-aisle rack into the order tote, within 2,400 steps."]],
+   tasks:[["IndustrialShelfRetrieval-v0",[[FETCH,"draft"]],"Retrieve a family-B carton from the middle shelf of a narrow-aisle rack into the order tote, within 2,400 steps."],
+          ["IndustrialPiecePick-v1",[[TWO,"draft"]],"T1: hook the storage bin out of the rack, suction-pick one item into the order container, return the bin. Shelf levels 3 and 4."],
+          ["Whole-case picking (T2)",[[TWO,"planned"]],"Move a whole case from the rack to the handoff. Runs in its own runner; joins the pipeline once it has a task session."],
+          ["Case putaway (T3)",[[TWO,"planned"]],"The reverse of T2: from the handoff into the requested rack slot."]],
    conditions:[["nominal","run"],["robot start within 5 cm","planned"],["shelf level","planned"],["bay along the aisle","planned"],["item family A–D","planned"],["neighbour spacing 5–20 mm","planned"],["lighting","planned"]],
    cmd:"python -m pipeline.cli evaluate --suite warehouse-industrial-v1 \\\n  --model rbm_pi05 --include-drafts"},
 ];
